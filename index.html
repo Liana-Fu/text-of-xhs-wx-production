@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>照片变文案</title>
+<style>
+  :root {
+    --ink: #1f2328;
+    --paper: #ffffff;
+    --soft: #f5f6f8;
+    --line: #e3e6ea;
+    --wechat: #07c160;
+    --wechat-deep: #069b4e;
+    --xhs: #ff2442;
+    --xhs-deep: #d91b36;
+    --blue: #2f6fed;
+    --blue-deep: #2358c4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { font-size: 18px; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    background: var(--soft);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  header { text-align: center; padding: 18px 0 6px; }
+  header h1 { font-size: 1.7rem; letter-spacing: 2px; }
+  header p { font-size: 1.05rem; color: #5a6068; margin-top: 4px; }
+
+  .stepbar {
+    display: flex; justify-content: center; gap: 8px;
+    margin: 16px 0 20px; font-size: 0.95rem; color: #8a9098;
+  }
+  .stepbar .dot {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #dfe3e8; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.05rem;
+  }
+  .stepbar .dot.on { background: var(--blue); }
+  .stepbar .bar { width: 30px; height: 4px; border-radius: 2px; background: #dfe3e8; align-self: center; }
+  .stepbar .bar.on { background: var(--blue); }
+
+  .card {
+    background: var(--paper); border-radius: 20px;
+    padding: 24px 20px; box-shadow: 0 2px 10px rgba(30,40,60,.06);
+  }
+  .card h2 { font-size: 1.45rem; text-align: center; margin-bottom: 6px; }
+  .card .hint { text-align: center; font-size: 1.05rem; color: #5a6068; margin-bottom: 20px; }
+
+  .screen { display: none; }
+  .screen.on { display: block; }
+
+  .platform-btn {
+    width: 100%; border: none; border-radius: 18px;
+    padding: 26px 20px; margin-bottom: 16px;
+    font-size: 1.6rem; font-weight: 700; color: #fff;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    cursor: pointer;
+  }
+  .platform-btn small { display: block; font-size: 1rem; font-weight: 400; opacity: .92; margin-top: 2px; }
+  .platform-btn .txt { text-align: left; }
+  .platform-btn svg { flex: 0 0 auto; }
+  .btn-wechat { background: var(--wechat); }
+  .btn-wechat:active { background: var(--wechat-deep); }
+  .btn-xhs { background: var(--xhs); }
+  .btn-xhs:active { background: var(--xhs-deep); }
+
+  .upload-zone {
+    border: 3px dashed #c6ccd4; border-radius: 18px;
+    padding: 30px 16px; text-align: center; cursor: pointer;
+    background: #fafbfc;
+  }
+  .upload-zone:active { background: #eef1f5; }
+  .upload-zone .icon { font-size: 3rem; line-height: 1; }
+  .upload-zone .big { font-size: 1.35rem; font-weight: 700; margin-top: 10px; }
+  .upload-zone .small { font-size: 1rem; color: #5a6068; margin-top: 4px; }
+
+  .thumbs { display: flex; gap: 10px; margin-bottom: 14px; }
+  .thumb {
+    position: relative; width: 33.33%; aspect-ratio: 1;
+    border-radius: 12px; overflow: hidden; background: #000;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb .del {
+    position: absolute; top: 6px; right: 6px;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: none; background: rgba(0,0,0,.65); color: #fff;
+    font-size: 1.15rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  textarea {
+    width: 100%; border: 2px solid var(--line); border-radius: 14px;
+    padding: 14px; font-size: 1.15rem; font-family: inherit;
+    margin-top: 16px; resize: none; height: 88px; background: #fff;
+  }
+  textarea:focus { outline: none; border-color: var(--blue); }
+  label.note { display: block; font-size: 1.05rem; color: #5a6068; margin-top: 16px; }
+
+  .big-btn {
+    width: 100%; border: none; border-radius: 16px;
+    padding: 18px; font-size: 1.4rem; font-weight: 700;
+    color: #fff; background: var(--blue); cursor: pointer; margin-top: 18px;
+  }
+  .big-btn:active { background: var(--blue-deep); }
+  .big-btn:disabled { background: #b9c3d4; }
+  .ghost-btn {
+    width: 100%; border: 2px solid var(--line); border-radius: 16px;
+    padding: 14px; font-size: 1.15rem; font-weight: 600;
+    color: #5a6068; background: #fff; cursor: pointer; margin-top: 12px;
+  }
+  .ghost-btn:active { background: var(--soft); }
+
+  .loading { text-align: center; padding: 30px 0; }
+  .spinner {
+    width: 60px; height: 60px; margin: 0 auto 18px;
+    border: 6px solid #e3e8f2; border-top-color: var(--blue);
+    border-radius: 50%; animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading .big { font-size: 1.3rem; font-weight: 700; }
+  .loading .small { font-size: 1.05rem; color: #5a6068; margin-top: 6px; }
+
+  .result-block {
+    border: 2px solid var(--line); border-radius: 16px;
+    padding: 16px; margin-bottom: 16px; background: #fff;
+  }
+  .result-block .label {
+    font-size: 0.95rem; font-weight: 700; color: #8a9098;
+    letter-spacing: 1px; margin-bottom: 8px;
+  }
+  .result-block .content { font-size: 1.2rem; white-space: pre-wrap; word-break: break-word; }
+  .copy-btn {
+    margin-top: 12px; border: none; border-radius: 12px;
+    padding: 12px 0; width: 100%; font-size: 1.15rem; font-weight: 700;
+    background: #eaf1ff; color: var(--blue); cursor: pointer;
+  }
+  .copy-btn:active, .copy-btn.done { background: var(--blue); color: #fff; }
+
+  .error-box {
+    background: #fff2f2; border: 2px solid #ffc9c9; border-radius: 16px;
+    padding: 18px; text-align: center; font-size: 1.15rem; color: #c0392b;
+    word-break: break-word;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📷 照片变文案</h1>
+    <p>选好去处 · 传照片 · 文案就好</p>
+  </header>
+
+  <div class="stepbar">
+    <div class="dot on" id="d1">1</div><div class="bar" id="b1"></div>
+    <div class="dot" id="d2">2</div><div class="bar" id="b2"></div>
+    <div class="dot" id="d3">3</div>
+  </div>
+
+  <!-- 第一步:选平台 -->
+  <div class="card screen on" id="s1">
+    <h2>第一步:发到哪里?</h2>
+    <p class="hint">点一下下面的大按钮</p>
+    <button class="platform-btn btn-wechat" onclick="pickPlatform('wechat')">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="#fff"><path d="M8.7 4C5 4 2 6.6 2 9.8c0 1.8 1 3.4 2.5 4.5l-.6 2 2.2-1.2c.8.2 1.6.4 2.6.4h.4a5 5 0 0 1-.2-1.5c0-3 2.9-5.5 6.4-5.5h.4C15 6 12.1 4 8.7 4zM6.4 8.4a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zm4.6 0a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8zM22 14c0-2.8-2.6-5-5.8-5s-5.8 2.2-5.8 5 2.6 5 5.8 5c.7 0 1.4-.1 2-.3l1.9 1-.5-1.7A4.8 4.8 0 0 0 22 14zm-7.7-.9a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6zm3.8 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>
+      <span class="txt">微信朋友圈<small>生成一段朋友圈文字</small></span>
+    </button>
+    <button class="platform-btn btn-xhs" onclick="pickPlatform('xhs')">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="3" fill="#fff"/><text x="12" y="16.2" text-anchor="middle" font-size="9" font-weight="bold" fill="#ff2442" font-family="sans-serif">小红书</text></svg>
+      <span class="txt">小红书<small>生成标题、正文和话题</small></span>
+    </button>
+  </div>
+
+  <!-- 第二步:传照片 -->
+  <div class="card screen" id="s2">
+    <h2>第二步:上传照片</h2>
+    <p class="hint" id="platformHint"></p>
+    <div class="thumbs" id="thumbs" style="display:none"></div>
+    <div class="upload-zone" id="uploadZone" onclick="fileInput.click()">
+      <div class="icon">🖼️</div>
+      <div class="big" id="uploadText">点这里选照片</div>
+      <div class="small">最多 3 张,可以拍照或从相册选</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+    <label class="note" for="userNote">想补充一句吗?(不填也可以)</label>
+    <textarea id="userNote" placeholder="比如:和老同学聚会、孙子的生日……"></textarea>
+    <button class="big-btn" id="genBtn" onclick="generate()" disabled>✨ 帮我写文案</button>
+    <button class="ghost-btn" onclick="goStep(1)">← 返回上一步</button>
+  </div>
+
+  <!-- 第三步:结果 -->
+  <div class="card screen" id="s3">
+    <div class="loading" id="loadingBox">
+      <div class="spinner"></div>
+      <div class="big" id="loadingBig">正在看您的照片……</div>
+      <div class="small" id="loadingSmall">大约需要十几秒,请稍等</div>
+    </div>
+    <div id="resultBox" style="display:none">
+      <h2>写好了!</h2>
+      <p class="hint">点"复制"按钮,再去粘贴就行</p>
+      <div id="results"></div>
+      <button class="big-btn" onclick="regenerate()">🔄 不满意,换一批</button>
+      <button class="ghost-btn" onclick="restart()">📷 换照片重新来</button>
+    </div>
+    <div id="errorBox" style="display:none">
+      <div class="error-box" id="errorMsg"></div>
+      <button class="big-btn" onclick="generate()">再试一次</button>
+      <button class="ghost-btn" onclick="restart()">返回重新开始</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let platform = null;
+let imageList = [];        // [{data: base64无前缀, url: dataURL}]
+let lastDescription = null; // 已生成的照片描述,"换一批"时复用,省一半时间
+const MAX_PHOTOS = 3;
+
+const $ = id => document.getElementById(id);
+
+function goStep(n) {
+  [1,2,3].forEach(i => {
+    $('s'+i).classList.toggle('on', i === n);
+    $('d'+i).classList.toggle('on', i <= n);
+  });
+  $('b1').classList.toggle('on', n >= 2);
+  $('b2').classList.toggle('on', n >= 3);
+  window.scrollTo(0, 0);
+}
+
+function pickPlatform(p) {
+  platform = p;
+  $('platformHint').textContent = p === 'wechat'
+    ? '将为您写一段微信朋友圈文字'
+    : '将为您写小红书的标题、正文和话题';
+  goStep(2);
+}
+
+// ── 选照片 + 压缩 ──
+$('fileInput').addEventListener('change', async e => {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  const room = MAX_PHOTOS - imageList.length;
+  if (room <= 0) { alert('最多只能选 ' + MAX_PHOTOS + ' 张照片,可以先点照片右上角的 × 删掉一张'); e.target.value=''; return; }
+  const take = files.slice(0, room);
+  if (files.length > room) alert('最多 ' + MAX_PHOTOS + ' 张,已帮您保留前 ' + room + ' 张');
+  $('uploadText').textContent = '正在读取照片……';
+  for (const f of take) {
+    try { imageList.push(await compress(f)); } catch(err) { alert('有一张照片打不开,已跳过'); }
+  }
+  e.target.value = '';
+  lastDescription = null; // 照片变了,旧描述作废
+  renderThumbs();
+});
+
+function compress(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = ev => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 1024;
+        let { width: w, height: h } = img;
+        if (Math.max(w, h) > MAX) {
+          const r = MAX / Math.max(w, h);
+          w = Math.round(w * r); h = Math.round(h * r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const url = canvas.toDataURL('image/jpeg', 0.8);
+        resolve({ data: url.split(',')[1], url });
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderThumbs() {
+  const box = $('thumbs');
+  box.innerHTML = '';
+  imageList.forEach((im, i) => {
+    const t = document.createElement('div');
+    t.className = 'thumb';
+    const img = document.createElement('img');
+    img.src = im.url;
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '×';
+    del.onclick = ev => { ev.stopPropagation(); imageList.splice(i,1); lastDescription = null; renderThumbs(); };
+    t.appendChild(img); t.appendChild(del);
+    box.appendChild(t);
+  });
+  box.style.display = imageList.length ? 'flex' : 'none';
+  $('uploadText').textContent = imageList.length
+    ? (imageList.length < MAX_PHOTOS ? '已选 ' + imageList.length + ' 张,点这里还能再加' : '已选满 3 张')
+    : '点这里选照片';
+  $('genBtn').disabled = imageList.length === 0;
+}
+
+// ── 带自动重试的请求:每步最多试 2 次 ──
+async function callApi(body) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await fetch('/.netlify/functions/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      let data = null;
+      try { data = await res.json(); } catch(e) {}
+      if (!res.ok || (data && data.error)) {
+        throw new Error((data && data.error) || ('服务暂时没有响应(' + res.status + ')'));
+      }
+      return data;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1200));
+    }
+  }
+  throw lastErr;
+}
+
+function setLoading(big, small) {
+  $('loadingBox').style.display = 'block';
+  $('resultBox').style.display = 'none';
+  $('errorBox').style.display = 'none';
+  $('loadingBig').textContent = big;
+  $('loadingSmall').textContent = small;
+}
+
+async function generate() {
+  if (!imageList.length) return;
+  goStep(3);
+  try {
+    // 第一步:看照片(如果之前已经看过同一批,直接跳过)
+    if (!lastDescription) {
+      setLoading('正在看您的照片……', '第 1 步,共 2 步');
+      const d = await callApi({
+        action: 'describe',
+        images: imageList.map(im => ({ data: im.data, mediaType: 'image/jpeg' }))
+      });
+      lastDescription = d.description;
+    }
+    // 第二步:写文案
+    setLoading('照片看好了,正在写文案……', '第 2 步,共 2 步');
+    const data = await callApi({
+      action: 'compose',
+      platform,
+      description: lastDescription,
+      note: $('userNote').value.trim()
+    });
+    renderResults(data);
+  } catch (err) {
+    showError(err);
+  }
+}
+
+async function regenerate() {
+  // 复用照片描述,只重写文案,更快
+  goStep(3);
+  try {
+    setLoading('正在重新写文案……', '马上就好');
+    const data = await callApi({
+      action: 'compose',
+      platform,
+      description: lastDescription,
+      note: $('userNote').value.trim()
+    });
+    renderResults(data);
+  } catch (err) {
+    showError(err);
+  }
+}
+
+function showError(err) {
+  $('loadingBox').style.display = 'none';
+  $('errorBox').style.display = 'block';
+  const msg = String((err && err.message) || '');
+  $('errorMsg').textContent = msg && msg !== 'Failed to fetch'
+    ? msg
+    : '网络没有连上,请检查手机网络后,点下面的按钮再试一次。';
+  console.error(err);
+}
+
+function renderResults(data) {
+  const box = $('results');
+  box.innerHTML = '';
+  if (platform === 'wechat') {
+    (data.options || []).forEach((text, i) => {
+      box.appendChild(block('朋友圈文案 · 第 ' + (i+1) + ' 条', text));
+    });
+  } else {
+    if (data.title) box.appendChild(block('标题', data.title));
+    if (data.body) box.appendChild(block('正文', data.body));
+    if (data.tags && data.tags.length) box.appendChild(block('话题标签', data.tags.join(' ')));
+    const all = [data.title, data.body, (data.tags||[]).join(' ')].filter(Boolean).join('\n\n');
+    const allBtn = document.createElement('button');
+    allBtn.className = 'big-btn';
+    allBtn.style.marginTop = '4px';
+    allBtn.textContent = '📋 一键复制全部内容';
+    allBtn.onclick = () => copyText(all, allBtn, '✅ 全部复制好了!');
+    box.appendChild(allBtn);
+  }
+  $('loadingBox').style.display = 'none';
+  $('resultBox').style.display = 'block';
+}
+
+function block(label, content) {
+  const div = document.createElement('div');
+  div.className = 'result-block';
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = '📋 复制这段';
+  btn.onclick = () => copyText(content, btn, '✅ 复制好了!');
+  div.innerHTML = '<div class="label">' + label + '</div>';
+  const c = document.createElement('div');
+  c.className = 'content';
+  c.textContent = content;
+  div.appendChild(c);
+  div.appendChild(btn);
+  return div;
+}
+
+function copyText(text, btn, doneText) {
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = doneText;
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); }, 2500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch(e) { alert('请长按文字手动复制'); }
+  document.body.removeChild(ta);
+}
+
+function restart() {
+  imageList = [];
+  lastDescription = null;
+  renderThumbs();
+  $('userNote').value = '';
+  $('fileInput').value = '';
+  goStep(1);
+}
+</script>
+</body>
+</html>
